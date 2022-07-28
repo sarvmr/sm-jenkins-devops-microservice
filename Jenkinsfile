@@ -7,7 +7,7 @@
 // 	}
 // }
 
-pipeline{
+pipeline {
 	agent any
 	environment {
 		dockerHome = tool 'infi-docker'
@@ -22,14 +22,36 @@ pipeline{
 				echo "Build"
 			}
 		}
-		stage ('Test') {
+		stage ('Complie') {
 			steps {
-				echo "Test"
+				sh "mvn clean compile"
 			}
 		}
-		stage ('Integration Test') {
+		stage ('Test') {
 			steps {
-				echo "Integration Test"
+				sh "mvn test"
+			}
+		}
+		stage ('Package') {
+			steps {
+				sh "mvn package -DskipTests"
+			}
+		}
+		stage ('Build Docker Image') {
+			steps {
+				script {
+					dockerImage = docker.build("sarvmr/currency-exchange-devops:${env.BUILD_TAG}")
+				}
+			}
+		}
+		stage ('Push Docker Image') {
+			steps {
+				script {
+					docker.withRegistry('' , 'infi-dockerhub'){
+						dockerImage.push();
+						dockerImage.push('latest');
+					}
+				}				
 			}
 		}
 	}
